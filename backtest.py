@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def compute_cost(split, venues, S, λo, λu, θ):
+def compute_cost(split, venues, S, lambda_over, lambda_under, theta):
     executed = 0
     cash_spent = 0.0
     for q, v in zip(split, venues):
@@ -13,11 +13,43 @@ def compute_cost(split, venues, S, λo, λu, θ):
 
     underfill = max(S - executed, 0)
     overfill = max(executed - S, 0)
-    risk_pen = θ * (underfill + overfill)
-    cost_pen = λu * underfill + λo * overfill
+    risk_pen = theta * (underfill + overfill)
+    cost_pen = lambda_under * underfill + lambda_over * overfill
     return cash_spent + risk_pen + cost_pen
 
-def allocate(order_size, venues, λo, λu, θ):
+def allocate2(order_size, venues, lambda_over, lambda_under, theta):
+    step = 100
+    N = len(venues)
+    splits = [[]]
+
+    for v in range(N):
+        new_splits = []
+        for alloc in splits:
+            used = sum(alloc)
+            max_v = min(order_size - used, venues[v]['ask_size'])
+            for q in range(0, max_v + 1, step):
+                new_splits.append(alloc + [q])
+        splits = new_splits
+
+    best_cost = float('inf')
+    best_split = None
+    tolerance = 200
+
+    for alloc in splits:
+        total = sum(alloc)
+        if abs(total - order_size) > tolerance:
+            continue
+        cost = compute_cost(alloc, venues, order_size, lambda_over, lambda_under, theta)
+        if cost < best_cost:
+            best_cost = cost
+            best_split = alloc
+
+    if best_split is None:
+        return [0] * len(venues), float('inf')
+    return best_split, best_cost
+
+
+def allocate(order_size, venues, lambda_over, lambda_under, theta):
     step = 100
     N = len(venues)
     splits = [[]]
@@ -38,7 +70,7 @@ def allocate(order_size, venues, λo, λu, θ):
         total = sum(alloc)
         if total != order_size:
             continue
-        cost = compute_cost(alloc, venues, order_size, λo, λu, θ)
+        cost = compute_cost(alloc, venues, order_size, lambda_over, lambda_under, theta)
         if cost < best_cost:
             best_cost = cost
             best_split = alloc
@@ -47,7 +79,7 @@ def allocate(order_size, venues, λo, λu, θ):
         return [0] * len(venues), float('inf')
     return best_split, best_cost
 
-def run_backtest(snapshots, λo, λu, θ, S=5000):
+def run_backtest(snapshots, lambda_over, lambda_under, theta, S=5000):
     total_remaining = S
     cash_spent = 0.0
 
@@ -55,7 +87,8 @@ def run_backtest(snapshots, λo, λu, θ, S=5000):
         if total_remaining <= 0:
             break
 
-        split, _ = allocate(total_remaining, venues, λo, λu, θ)
+        split, _ = allocate(total_remaining, venues, lambda_over, lambda_under, theta)
+        #split, _ = allocate2(total_remaining, venues, lambda_over, lambda_under, theta)
 
         for q, v in zip(split, venues):
             if total_remaining <= 0:
@@ -144,20 +177,17 @@ def main():
     lambdas_under = np.linspace(0.05, 0.20, 100)
     thetas = np.linspace(0.0001, 0.0010, 100)
 
-    N_SAMPLES = 5000
-    idx_o = np.random.randint(0, 100, size=N_SAMPLES)
-    idx_u = np.random.randint(0, 100, size=N_SAMPLES)
-    idx_t = np.random.randint(0, 100, size=N_SAMPLES)
+    N_SAMPLES = 500
 
     best = {'cash': float('inf')}
     for i in range(N_SAMPLES):
-        λo = lambdas_over[idx_o[i]]
-        λu = lambdas_under[idx_u[i]]
-        θ = thetas[idx_t[i]]
+        lambda_over = np.random.choice(lambdas_over)
+        lambda_under = np.random.choice(lambdas_under)
+        theta = np.random.choice(thetas)
 
-        cash, avg = run_backtest(snapshots, λo, λu, θ)
+        cash, avg = run_backtest(snapshots, lambda_over, lambda_under, theta)
         if cash < best['cash']:
-            best.update({'λo': λo, 'λu': λu, 'θ': θ, 'cash': cash, 'avg': avg})
+            best = {'lambda_over': lambda_over, 'lambda_under': lambda_under, 'theta': theta, 'cash': cash, 'avg': avg}
 
     b1_cash, b1_avg = baseline_best_ask(snapshots)
     b2_cash, b2_avg = baseline_twap_60s(snapshots)
@@ -172,9 +202,9 @@ def main():
 
     output = {
         'best_params': {
-            'lambda_over': best['λo'],
-            'lambda_under': best['λu'],
-            'theta_queue': best['θ']
+            'lambda_over': best['lambda_over'],
+            'lambda_under': best['lambda_under'],
+            'theta_queue': best['theta']
         },
         'optimized': {
             'total_cash': opt_cash,
@@ -189,10 +219,6 @@ def main():
     }
 
     print_json(output)
-    #import json
-    #print(json.dumps(output, indent=2))
-    # Was unsure whether I could use json library or not, so thought to create the function instead
-
 
 if __name__ == '__main__':
     main()
