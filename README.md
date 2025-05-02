@@ -19,6 +19,23 @@ This repository contains a back-testing implementation of the static cost model 
 ```bash
 python backtest.py
 ```
+### ⚙️ Two Allocation Variants
+
+To give a bit more flexibility when exploring trade-offs between fill completeness and cost, the repo includes **two** versions of the allocator:
+
+- **`allocate()`**  
+  - **Exact-fill**: strictly enforces `sum(split) == order_size`.  
+  - Matches the pseudocode in **allocator_pseudocode.txt** one-for-one.  
+  - Use this to verify pure Cont–Kukanov behavior.
+
+- **`allocate2()`**  
+  - **Tolerance-based**: allows under- or over-fills within a ±200-share window.  
+  - Enables the optimizer to trade a small fill shortfall/overshoot against cheaper per-share prices.  
+  - Produces more realistic routing results by letting the penalty parameters (`λ_under`, `λ_over`, `θ`) actually influence the split.
+
+> ⚠️ **What’s used in backtest**:  
+> By default `main()` calls `allocate()`, to run the pure pseudocode version. If you want a tuned router that can underfill/overfill slightly and find lower-cost splits n, simply swap to `allocate2()` in `run_backtest()`.
+
 
 The script runs in <2 minutes on a modern laptop and outputs a JSON object with:
 
