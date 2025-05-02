@@ -180,7 +180,7 @@ def main():
     N_SAMPLES = 500
 
     best = {'cash': float('inf')}
-    for i in range(N_SAMPLES):
+    for _ in range(N_SAMPLES):
         lambda_over = np.random.choice(lambdas_over)
         lambda_under = np.random.choice(lambdas_under)
         theta = np.random.choice(thetas)
