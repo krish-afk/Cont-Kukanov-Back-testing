@@ -85,7 +85,7 @@ The script runs in <2 minutes on a modern laptop and outputs a JSON object wit
 * **`lambda_over`**: 100 values in \[0.01, 0.10]
 * **`lambda_under`**: 100 values in \[0.05, 0.20]
 * **`theta_queue`**: 100 values in \[0.0001, 0.0010]
-* **Sampling**: 5 000 random triples to cover combinations without full 1 000 000-grid evaluation
+* **Sampling**: 500 random triples to cover combinations without full 1 000 000-grid evaluation
 
 ---
 
