@@ -34,7 +34,7 @@ To give a bit more flexibility when exploring trade-offs between fill completene
   - Produces more realistic routing results by letting the penalty parameters (`λ_under`, `λ_over`, `θ`) actually influence the split.
 
 > ⚠️ **What’s used in backtest**:  
-> By default `main()` calls `allocate()`, to run the pure pseudocode version. If you want a tuned router that can underfill/overfill slightly and find lower-cost splits n, simply swap to `allocate2()` in `run_backtest()`.
+> By default `run_backtest()` calls `allocate()`, to run the pure pseudocode version. If you want a tuned router that can underfill/overfill slightly and find lower-cost splits n, simply swap to `allocate2()` in `run_backtest()`.
 
 
 The script runs in <2 minutes on a modern laptop and outputs a JSON object with:
